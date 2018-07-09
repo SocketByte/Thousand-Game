@@ -1,0 +1,5 @@
+rootProject.name = 'thousand'
+include 'thousand-client'
+include 'thousand-server'
+include 'thousand-shared'
+include 'thousand-matchmaker'

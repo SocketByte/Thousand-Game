@@ -1,0 +1,17 @@
+dependencies {
+    compile project(":thousand-shared")
+
+    compile group: 'net.java.dev.jna', name: 'jna', version: '4.5.1'
+}
+
+jar {
+    from {
+        configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+
+    manifest {
+        attributes(
+                'Class-Path': configurations.compile.collect{it.toURI().toString()}.join(' '),
+                'Main-Class': 'pl.socketbyte.thousand.client.ThousandClientKt')
+    }
+}

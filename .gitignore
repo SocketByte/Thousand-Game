@@ -1,0 +1,15 @@
+.idea/
+*.iml
+*.iws
+*.tmp
+dependency-reduced-pom.xml
+log/
+build/
+build
+/build
+**/build
+**/javadoc
+javadoc/
+/javadoc
+javadoc
+.gradle
