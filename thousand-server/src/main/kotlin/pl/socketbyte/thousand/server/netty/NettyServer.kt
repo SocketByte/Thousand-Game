@@ -166,25 +166,6 @@ open class NettyServer(private val port: Int)
         return result
     }
 
-    private suspend inline fun <reified T> writeAndRequestElseDisconnect(channel: Channel, packet: Packet, block: (T) -> Unit) {
-        try {
-            futureResolver.register(packet.id)
-
-            write(channel, packet)
-
-            val result = futureResolver.await(packet.id)
-
-            if (result == null || result !is T)
-                return
-
-            block(result)
-        } catch (ex: TimeoutCancellationException) {
-            println("Client ${channel.remoteAddress()} is not responding to keep-alive, disconnecting...")
-            removeClient(channel)
-            channel.disconnect()
-        }
-    }
-
     fun write(channel: Channel, packet: Packet) {
         channel.writeAndFlush(packet)
     }
