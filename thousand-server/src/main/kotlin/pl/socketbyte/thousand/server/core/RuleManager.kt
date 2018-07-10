@@ -1,5 +1,9 @@
 package pl.socketbyte.thousand.server.core
 
+import pl.socketbyte.thousand.server.core.data.Choice
+import pl.socketbyte.thousand.server.core.data.Round
+import pl.socketbyte.thousand.server.core.data.Rule
+
 /**
  * Class for managing rules and checking user roll for points
  */

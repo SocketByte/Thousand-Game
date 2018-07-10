@@ -1,7 +1,11 @@
 package pl.socketbyte.thousand.client
 
+import com.sun.security.ntlm.Client
 import pl.socketbyte.thousand.client.jna.NativeConsole
+import pl.socketbyte.thousand.client.netty.NettyClient
 import pl.socketbyte.thousand.shared.*
+import pl.socketbyte.thousand.shared.packet.Packet
+import pl.socketbyte.thousand.shared.packet.PacketKeepAlive
 import pl.socketbyte.thousand.shared.terminal.JobThread
 import pl.socketbyte.thousand.shared.terminal.OutputThread
 import pl.socketbyte.thousand.shared.terminal.TimedInput
@@ -16,6 +20,9 @@ class GameThread : JobThread(OutputThread()) {
     init {
         outputThread.start()
     }
+
+    // Current connection, null if not connected.
+    private var client: NettyClient? = null
 
     /**
      * Main game thread
@@ -59,15 +66,45 @@ class GameThread : JobThread(OutputThread()) {
             sleep(time)
             print("Matchmaking... /\r")
         }
-        print(RED + "\rMatchmaking service is currently disabled.\n" + RESET)
+        print("$RED\rMatchmaking service is currently disabled.\n$RESET")
         println(RED + "Please enter the server IP below." + RESET)
 
-        val choice = timedInput("Timed read", 5)
-        println()
-        if (choice == null) {
-            warn("You did not answer in time!")
-        } else  println("Your choice is $choice")
+        client = connectFromInput()
+        help("Retrieving current game state info...")
+
+
+
         proceed()
+    }
+
+    private fun connectFromInput(lastInvalid: Boolean = false): NettyClient {
+        if (lastInvalid) {
+            severe("Invalid server address or server does not respond. Please try again.")
+            println()
+        }
+
+        val server = proceedWithInput("Server address to connect:", 200)
+        if (server.isEmpty())
+            return connectFromInput(true)
+
+        val split = server.split(":")
+        if (split.isEmpty())
+            return connectFromInput(true)
+
+        val client: NettyClient
+        try {
+            val address = split[0]
+            val port = split[1].toInt()
+
+            client = NettyClient(address, port)
+            client.kryo.register(Packet::class.java)
+            client.kryo.register(PacketKeepAlive::class.java)
+            client.start()
+        } catch (e: Exception) {
+            return connectFromInput(true)
+        }
+
+        return client
     }
 
     /**
@@ -95,7 +132,7 @@ class GameThread : JobThread(OutputThread()) {
         println()
         colored("$WHITE_UNDERLINED$text (You have approx. $time seconds): ")
         print("> ")
-        val timedInput = TimedInput(1, time, TimeUnit.SECONDS)
+        val timedInput = TimedInput(time, TimeUnit.SECONDS)
         val line = timedInput.readLine()
         if (line == "") {
             return null

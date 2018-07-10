@@ -1,4 +1,4 @@
-package pl.socketbyte.thousand.server.core
+package pl.socketbyte.thousand.server.core.data
 
 /**
  * Simple data class for storing points-rules, like amount x dice = points

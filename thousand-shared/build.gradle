@@ -1,3 +1,12 @@
 dependencies {
     compile group: 'org.ini4j', name: 'ini4j', version: '0.5.1'
+
+    compile 'com.esotericsoftware:kryo:4.0.2'
+    compile group: 'org.jetbrains.kotlinx', name: 'kotlinx-coroutines-jdk8', version: '0.22.5'
+    compile group: 'io.netty', name: 'netty-all', version: '4.1.17.Final'
+}
+kotlin {
+    experimental {
+        coroutines "enable"
+    }
 }

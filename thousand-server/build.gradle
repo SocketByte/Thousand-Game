@@ -17,3 +17,8 @@ jar {
                 'Main-Class': 'pl.socketbyte.thousand.server.ThousandServerKt')
     }
 }
+kotlin {
+    experimental {
+        coroutines "enable"
+    }
+}

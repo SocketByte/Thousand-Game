@@ -1,4 +1,4 @@
-package pl.socketbyte.thousand.server.core
+package pl.socketbyte.thousand.server.core.data
 
 /**
  * Similar to Rule class, but this can be modified based on user roll
