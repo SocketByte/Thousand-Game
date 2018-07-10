@@ -29,6 +29,31 @@ class Game(val server: NettyServer) {
 
     fun getPlayer(id: Int) = Player(id, server.clients[id])
 
+    /**
+     * Broadcasts a message as a `print`
+     * Sleeps 10 ms between each player, because otherwise the packet can crash (and will crash)
+     */
+    fun broadcastPrint(text: String = "") {
+        for (player in getPlayers()) {
+            Thread.sleep(10)
+            player.print(text)
+        }
+    }
+
+    fun broadcastPrintln(text: String = "") {
+        for (player in getPlayers()) {
+            Thread.sleep(10)
+            player.println(text)
+        }
+    }
+
+    fun broadcastPrintlnNative(text: String = "") {
+        for (player in getPlayers()) {
+            Thread.sleep(10)
+            player.printlnNative(text)
+        }
+    }
+
     fun start() {
         for (player in getPlayers()) {
             // send welcome message etc

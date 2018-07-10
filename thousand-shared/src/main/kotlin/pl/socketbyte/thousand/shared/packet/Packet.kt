@@ -19,8 +19,6 @@ abstract class Packet : Serializable {
      * Can be changed accordingly to request.
      *
      * @return Long number between -9223372036854775808 and 9223372036854775807
-     * @since 1.0
-     * @author SocketByte
      */
     var id = ThreadLocalRandom.current()
             .nextLong(Long.MIN_VALUE, Long.MAX_VALUE)

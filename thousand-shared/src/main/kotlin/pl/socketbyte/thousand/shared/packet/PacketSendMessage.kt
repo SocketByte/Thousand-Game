@@ -1,4 +1,7 @@
 package pl.socketbyte.thousand.shared.packet
 
-data class PacketSendMessage(val text: String)
+import pl.socketbyte.thousand.shared.packet.data.MessageType
+
+data class PacketSendMessage(val type: MessageType = MessageType.PRINT_LINE,
+                             val text: String = "")
     : Packet()

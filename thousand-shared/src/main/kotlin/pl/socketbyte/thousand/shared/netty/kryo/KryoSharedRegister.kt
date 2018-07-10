@@ -5,10 +5,12 @@ import pl.socketbyte.thousand.shared.packet.Packet
 import pl.socketbyte.thousand.shared.packet.PacketKeepAlive
 import pl.socketbyte.thousand.shared.packet.PacketPlayerChoice
 import pl.socketbyte.thousand.shared.packet.PacketSendMessage
+import pl.socketbyte.thousand.shared.packet.data.MessageType
 
 object KryoSharedRegister {
 
     fun registerAll(kryo: Kryo) {
+        kryo.register(MessageType::class.java)
         kryo.register(Packet::class.java)
         kryo.register(PacketKeepAlive::class.java)
         kryo.register(PacketSendMessage::class.java)

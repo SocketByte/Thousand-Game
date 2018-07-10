@@ -2,10 +2,7 @@ package pl.socketbyte.thousand.server
 
 import pl.socketbyte.thousand.server.core.Game
 import pl.socketbyte.thousand.server.netty.NettyServer
-import pl.socketbyte.thousand.shared.BLUE
-import pl.socketbyte.thousand.shared.BLUE_BOLD_BRIGHT
-import pl.socketbyte.thousand.shared.GREEN_BOLD_BRIGHT
-import pl.socketbyte.thousand.shared.clearScreen
+import pl.socketbyte.thousand.shared.*
 import pl.socketbyte.thousand.shared.netty.kryo.KryoSharedRegister
 import pl.socketbyte.thousand.shared.packet.Packet
 import pl.socketbyte.thousand.shared.packet.PacketKeepAlive
@@ -14,6 +11,7 @@ import pl.socketbyte.thousand.shared.packet.PacketSendMessage
 import pl.socketbyte.thousand.shared.terminal.JobThread
 import pl.socketbyte.thousand.shared.terminal.OutputThread
 import java.text.SimpleDateFormat
+import java.util.concurrent.ThreadLocalRandom
 
 class ServerThread : JobThread(OutputThread()) {
     private val dateFormat = SimpleDateFormat("HH:mm:ss")
@@ -53,6 +51,20 @@ class ServerThread : JobThread(OutputThread()) {
         println()
         val roll = game.roll()
         val round = game.rules.calculateRound(roll)
+
+        while (true) {
+            if (game.getPlayers().isEmpty())
+                continue
+
+            sleep(500)
+
+            val random = ThreadLocalRandom.current()
+                    .nextInt(0, game.getPlayers().size)
+            val randomPlayer = game.getPlayer(random)
+            randomPlayer.println(YELLOW + "You were randomly chosen player by the server!")
+
+            game.broadcastPrintln(RED + "This message was broadcasted to all of the players.")
+        }
     }
 
     fun coloredInfo(text: String = "") {
