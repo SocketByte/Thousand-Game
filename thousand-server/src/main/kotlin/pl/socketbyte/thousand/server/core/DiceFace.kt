@@ -1,5 +1,7 @@
 package pl.socketbyte.thousand.server.core
 
+import pl.socketbyte.thousand.server.exception.FatalServerException
+
 /**
  * Simple utility class to store all Unicode-based dice faces
  */
@@ -45,7 +47,8 @@ enum class DiceFace(val face: String) {
                 4 -> FOUR
                 5 -> FIVE
                 6 -> SIX
-                else -> ONE
+                else -> throw FatalServerException("That should not happen. " +
+                        "$roll is greater than 6 (?)")
             }
         }
     }

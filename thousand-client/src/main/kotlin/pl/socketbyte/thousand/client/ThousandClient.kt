@@ -15,6 +15,17 @@ import java.util.logging.Logger
  *
  * This is the main class of Thousand client app
  */
+
+val gameThread = GameThread()
+
 fun main(args: Array<String>) {
-    GameThread().start()
+    gameThread.start()
+}
+
+fun printlnSync(text: String = "") {
+    gameThread.println(text)
+}
+
+fun printSync(text: String = "") {
+    gameThread.print(text)
 }

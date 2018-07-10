@@ -44,7 +44,7 @@ class FutureResolver {
      * @param[id] [Packet.id]
      */
     suspend fun await(id: Long): Packet? {
-        val packet = withTimeout(3000) {
+        val packet = withTimeout(4000) {
             futures[id]?.await()
         }
         futures.remove(id)

@@ -1,18 +1,17 @@
 package pl.socketbyte.thousand.client
 
-import com.sun.security.ntlm.Client
 import pl.socketbyte.thousand.client.jna.NativeConsole
 import pl.socketbyte.thousand.client.netty.NettyClient
 import pl.socketbyte.thousand.shared.*
+import pl.socketbyte.thousand.shared.netty.kryo.KryoSharedRegister
 import pl.socketbyte.thousand.shared.packet.Packet
 import pl.socketbyte.thousand.shared.packet.PacketKeepAlive
+import pl.socketbyte.thousand.shared.packet.PacketSendMessage
 import pl.socketbyte.thousand.shared.terminal.JobThread
 import pl.socketbyte.thousand.shared.terminal.OutputThread
 import pl.socketbyte.thousand.shared.terminal.TimedInput
 import java.util.*
-import java.io.BufferedReader
 import java.util.concurrent.TimeUnit
-import java.util.concurrent.TimeoutException
 
 
 class GameThread : JobThread(OutputThread()) {
@@ -70,11 +69,8 @@ class GameThread : JobThread(OutputThread()) {
         println(RED + "Please enter the server IP below." + RESET)
 
         client = connectFromInput()
-        help("Retrieving current game state info...")
-
-
-
-        proceed()
+        help("Successfully joined the server.")
+        help("Retrieving the game state info...")
     }
 
     private fun connectFromInput(lastInvalid: Boolean = false): NettyClient {
@@ -97,8 +93,7 @@ class GameThread : JobThread(OutputThread()) {
             val port = split[1].toInt()
 
             client = NettyClient(address, port)
-            client.kryo.register(Packet::class.java)
-            client.kryo.register(PacketKeepAlive::class.java)
+            KryoSharedRegister.registerAll(client.kryo)
             client.start()
         } catch (e: Exception) {
             return connectFromInput(true)

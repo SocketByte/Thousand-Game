@@ -2,6 +2,9 @@ package pl.socketbyte.thousand.server.netty
 
 import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.SimpleChannelInboundHandler
+import io.netty.handler.timeout.TimeoutException
+import io.netty.handler.timeout.WriteTimeoutException
+import pl.socketbyte.thousand.server.printlnSync
 import pl.socketbyte.thousand.shared.netty.NettyListener
 import pl.socketbyte.thousand.shared.packet.Packet
 
@@ -15,17 +18,27 @@ class NettyChannelHandler(
             ctx.disconnect()
             return
         }
+        if (server.clients.size >= 4) {
+            // server.write(ctx.channel(), PacketDisconnectResult("server is full"))
+            ctx.disconnect()
+            return
+        }
+        server.addClient(ctx.channel())
 
-        println("Client ${ctx.channel().remoteAddress()} connected. (Waiting for authorization)")
+        printlnSync("Client ${ctx.channel().remoteAddress()} joined the game (${server.clients.size}/4)")
     }
 
     override fun channelInactive(ctx: ChannelHandlerContext) {
-        println("Client ${ctx.channel().remoteAddress()} disconnected.")
         server.removeClient(ctx.channel())
+
+        printlnSync("Client ${ctx.channel().remoteAddress()} left the game. (${server.clients.size}/4)")
     }
 
     override fun exceptionCaught(ctx: ChannelHandlerContext, cause: Throwable) {
-        // Do nothing
+        if (cause is WriteTimeoutException) {
+            printlnSync("${ctx.channel().remoteAddress()} timeouted.")
+            ctx.disconnect()
+        }
     }
 
     override fun channelRead0(ctx: ChannelHandlerContext, msg: Any) {

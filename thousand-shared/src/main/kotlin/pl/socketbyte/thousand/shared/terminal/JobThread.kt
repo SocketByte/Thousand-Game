@@ -31,7 +31,7 @@ abstract class JobThread(
     }
 
     fun help(text: String = "") {
-        outputThread.println(BLUE + text + RESET)
+        outputThread.println(BLUE_BRIGHT + text + RESET)
     }
 
     fun success(text: String = "") {

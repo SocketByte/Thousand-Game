@@ -13,19 +13,16 @@ import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.SocketChannel
 import io.netty.channel.socket.nio.NioSocketChannel
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder
-import io.netty.handler.logging.LogLevel
-import io.netty.handler.logging.LoggingHandler
 import io.netty.handler.ssl.SslContext
 import io.netty.handler.ssl.SslContextBuilder
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory
-import kotlinx.coroutines.experimental.async
+import pl.socketbyte.thousand.client.netty.listener.SendMessageListener
 import pl.socketbyte.thousand.shared.netty.FutureResolver
 import pl.socketbyte.thousand.shared.netty.NettyEndpoint
 import pl.socketbyte.thousand.shared.netty.NettyListener
 import pl.socketbyte.thousand.shared.netty.kryo.KryoDecoder
 import pl.socketbyte.thousand.shared.netty.kryo.KryoEncoder
 import pl.socketbyte.thousand.shared.packet.Packet
-import pl.socketbyte.thousand.shared.packet.PacketKeepAlive
 
 open class NettyClient(val address: String, val port: Int)
     : NettyEndpoint {
@@ -92,15 +89,7 @@ open class NettyClient(val address: String, val port: Int)
             }
         })
 
-        // Add default TCP keep alive responder
-        addListener(object : NettyListener {
-            override fun received(connection: Channel, packet: Packet) {
-                if (packet !is PacketKeepAlive)
-                    return
-
-                writeResponse(packet, PacketKeepAlive())
-            }
-        })
+        addListener(SendMessageListener)
     }
 
     override fun close() {

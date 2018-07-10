@@ -10,11 +10,11 @@ import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.SocketChannel
 import io.netty.channel.socket.nio.NioServerSocketChannel
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder
-import io.netty.handler.logging.LogLevel
-import io.netty.handler.logging.LoggingHandler
 import io.netty.handler.ssl.SslContext
 import io.netty.handler.ssl.SslContextBuilder
 import io.netty.handler.ssl.util.SelfSignedCertificate
+import io.netty.handler.timeout.WriteTimeoutHandler
+import kotlinx.coroutines.experimental.TimeoutCancellationException
 import kotlinx.coroutines.experimental.async
 import pl.socketbyte.thousand.shared.netty.FutureResolver
 import pl.socketbyte.thousand.shared.netty.NettyEndpoint
@@ -23,7 +23,6 @@ import pl.socketbyte.thousand.shared.netty.kryo.KryoDecoder
 import pl.socketbyte.thousand.shared.netty.kryo.KryoEncoder
 import pl.socketbyte.thousand.shared.packet.Packet
 import pl.socketbyte.thousand.shared.packet.PacketKeepAlive
-import java.util.concurrent.CancellationException
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
@@ -110,6 +109,7 @@ open class NettyServer(private val port: Int)
                         pipeline.addLast("frame", LengthFieldBasedFrameDecoder(65535, 0, 2, 0, 2))
                         pipeline.addLast("decoder", KryoDecoder(kryo))
                         pipeline.addLast("encoder", KryoEncoder(kryo, 4 * 1024, 16 * 1024))
+                        pipeline.addLast("writeTimeoutHandler", WriteTimeoutHandler(3))
                         pipeline.addLast("handler", NettyChannelHandler(this@NettyServer, listeners))
                     }
                 })
@@ -126,11 +126,7 @@ open class NettyServer(private val port: Int)
         // Run TCP keep-alive task
         executors.scheduleAtFixedRate({
             for (client in clients) {
-                @Suppress("DeferredResultUnused")
-                async {
-                    // If received, do nothing.
-                    writeAndRequestElseDisconnect<PacketKeepAlive>(client, PacketKeepAlive()) { }
-                }
+                write(client, PacketKeepAlive())
             }
         }, 5, 5, TimeUnit.SECONDS)
     }
@@ -145,9 +141,10 @@ open class NettyServer(private val port: Int)
     }
 
     suspend inline fun <reified T> writeAndRequest(channel: Channel, packet: Packet, block: (T) -> Unit) {
+        futureResolver.register(packet.id)
+
         write(channel, packet)
 
-        futureResolver.register(packet.id)
         val result = futureResolver.await(packet.id)
 
         if (result == null || result !is T)
@@ -157,9 +154,10 @@ open class NettyServer(private val port: Int)
     }
 
     suspend inline fun <reified T> writeAndRequest(channel: Channel, packet: Packet): T? {
+        futureResolver.register(packet.id)
+
         write(channel, packet)
 
-        futureResolver.register(packet.id)
         val result = futureResolver.await(packet.id)
 
         if (result == null || result !is T)
@@ -170,17 +168,18 @@ open class NettyServer(private val port: Int)
 
     private suspend inline fun <reified T> writeAndRequestElseDisconnect(channel: Channel, packet: Packet, block: (T) -> Unit) {
         try {
+            futureResolver.register(packet.id)
+
             write(channel, packet)
 
-            futureResolver.register(packet.id)
             val result = futureResolver.await(packet.id)
 
             if (result == null || result !is T)
                 return
 
             block(result)
-        } catch (ex: CancellationException) {
-            println("Client $channel did not respond, disconnecting...")
+        } catch (ex: TimeoutCancellationException) {
+            println("Client ${channel.remoteAddress()} is not responding to keep-alive, disconnecting...")
             removeClient(channel)
             channel.disconnect()
         }

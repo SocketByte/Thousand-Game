@@ -6,8 +6,11 @@ import pl.socketbyte.thousand.shared.BLUE
 import pl.socketbyte.thousand.shared.BLUE_BOLD_BRIGHT
 import pl.socketbyte.thousand.shared.GREEN_BOLD_BRIGHT
 import pl.socketbyte.thousand.shared.clearScreen
+import pl.socketbyte.thousand.shared.netty.kryo.KryoSharedRegister
 import pl.socketbyte.thousand.shared.packet.Packet
 import pl.socketbyte.thousand.shared.packet.PacketKeepAlive
+import pl.socketbyte.thousand.shared.packet.PacketPlayerChoice
+import pl.socketbyte.thousand.shared.packet.PacketSendMessage
 import pl.socketbyte.thousand.shared.terminal.JobThread
 import pl.socketbyte.thousand.shared.terminal.OutputThread
 import java.text.SimpleDateFormat
@@ -38,8 +41,7 @@ class ServerThread : JobThread(OutputThread()) {
         info("Running server at port 25890...")
         server = NettyServer(25890)
         info("Registering kryo classes...")
-        server.kryo.register(Packet::class.java)
-        server.kryo.register(PacketKeepAlive::class.java)
+        KryoSharedRegister.registerAll(server.kryo)
         info("Starting the server...")
         server.start()
 
