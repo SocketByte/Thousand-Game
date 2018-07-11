@@ -28,7 +28,7 @@ object NativeConsole {
      */
     init {
         val os = System.getProperty("os.name").toLowerCase()
-        kernel = if (os.contains("Windows")) {
+        kernel = if (os.startsWith("win")) {
             Native.loadLibrary("kernel32", Kernel32::class.java)
         }
         else null
@@ -50,6 +50,6 @@ object NativeConsole {
         kernel.WriteConsoleW(handle, buffer, buffer.size,
                 lp, null)
 
-        outputThread.println("")
+        println()
     }
 }

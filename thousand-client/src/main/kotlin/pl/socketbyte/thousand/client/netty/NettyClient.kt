@@ -16,12 +16,15 @@ import io.netty.handler.codec.LengthFieldBasedFrameDecoder
 import io.netty.handler.ssl.SslContext
 import io.netty.handler.ssl.SslContextBuilder
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory
+import pl.socketbyte.thousand.client.netty.listener.ConsoleClearListener
+import pl.socketbyte.thousand.client.netty.listener.PlayerChoiceListener
 import pl.socketbyte.thousand.client.netty.listener.SendMessageListener
 import pl.socketbyte.thousand.shared.netty.FutureResolver
 import pl.socketbyte.thousand.shared.netty.NettyEndpoint
 import pl.socketbyte.thousand.shared.netty.NettyListener
 import pl.socketbyte.thousand.shared.netty.kryo.KryoDecoder
 import pl.socketbyte.thousand.shared.netty.kryo.KryoEncoder
+import pl.socketbyte.thousand.shared.netty.kryo.KryoSharedRegister
 import pl.socketbyte.thousand.shared.packet.Packet
 
 open class NettyClient(val address: String, val port: Int)
@@ -30,7 +33,13 @@ open class NettyClient(val address: String, val port: Int)
     private val listeners = mutableListOf<NettyListener>()
     private var sslContext: SslContext? = null
 
-    override val kryo: Kryo = Kryo()
+    override val kryo: ThreadLocal<Kryo> = object : ThreadLocal<Kryo>() {
+        override fun initialValue(): Kryo {
+            val kryo = Kryo()
+            KryoSharedRegister.registerAll(kryo)
+            return kryo
+        }
+    }
     override val futureResolver: FutureResolver = FutureResolver()
 
     lateinit var channel: Channel
@@ -73,8 +82,8 @@ open class NettyClient(val address: String, val port: Int)
                             pipeline.addLast(sslContext?.newHandler(ch.alloc(), address, port))
 
                         pipeline.addLast("frame", LengthFieldBasedFrameDecoder(65535, 0, 2, 0, 2))
-                        pipeline.addLast("decoder", KryoDecoder(kryo))
-                        pipeline.addLast("encoder", KryoEncoder(kryo, 4 * 1024, 16 * 1024))
+                        pipeline.addLast("decoder", KryoDecoder(kryo.get()))
+                        pipeline.addLast("encoder", KryoEncoder(kryo.get(), 4 * 1024, 16 * 1024))
                         pipeline.addLast("handler", NettyChannelHandler(listeners))
                     }
                 })
@@ -90,6 +99,8 @@ open class NettyClient(val address: String, val port: Int)
         })
 
         addListener(SendMessageListener)
+        addListener(ConsoleClearListener)
+        addListener(PlayerChoiceListener)
     }
 
     override fun close() {

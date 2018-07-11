@@ -6,7 +6,11 @@ import pl.socketbyte.thousand.shared.packet.Packet
 import pl.socketbyte.thousand.shared.packet.PacketSendMessage
 import pl.socketbyte.thousand.shared.packet.data.MessageType
 
-data class Player(val id: Int, val channel: Channel) {
+data class Player(val id: Int,
+                  val name: String,
+                  val channel: Channel,
+                  val channelId: String,
+                  var score: Int = 0) {
     fun sendPacket(packet: Packet) {
         server.write(channel, packet)
     }

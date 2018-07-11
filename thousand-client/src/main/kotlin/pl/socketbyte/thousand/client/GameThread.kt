@@ -6,6 +6,7 @@ import pl.socketbyte.thousand.shared.*
 import pl.socketbyte.thousand.shared.netty.kryo.KryoSharedRegister
 import pl.socketbyte.thousand.shared.packet.Packet
 import pl.socketbyte.thousand.shared.packet.PacketKeepAlive
+import pl.socketbyte.thousand.shared.packet.PacketPlayerLogin
 import pl.socketbyte.thousand.shared.packet.PacketSendMessage
 import pl.socketbyte.thousand.shared.terminal.JobThread
 import pl.socketbyte.thousand.shared.terminal.OutputThread
@@ -13,15 +14,14 @@ import pl.socketbyte.thousand.shared.terminal.TimedInput
 import java.util.*
 import java.util.concurrent.TimeUnit
 
+// Current connection, null if not connected.
+var client: NettyClient? = null
 
 class GameThread : JobThread(OutputThread()) {
 
     init {
         outputThread.start()
     }
-
-    // Current connection, null if not connected.
-    private var client: NettyClient? = null
 
     /**
      * Main game thread
@@ -70,7 +70,13 @@ class GameThread : JobThread(OutputThread()) {
 
         client = connectFromInput()
         help("Successfully joined the server.")
-        help("Retrieving the game state info...")
+        println()
+        val name = proceedWithInput("Please enter your name or leave empty:")
+        val packet = PacketPlayerLogin(name)
+        if (client == null) {
+            return
+        }
+        client?.write(packet)
     }
 
     private fun connectFromInput(lastInvalid: Boolean = false): NettyClient {
@@ -93,7 +99,6 @@ class GameThread : JobThread(OutputThread()) {
             val port = split[1].toInt()
 
             client = NettyClient(address, port)
-            KryoSharedRegister.registerAll(client.kryo)
             client.start()
         } catch (e: Exception) {
             return connectFromInput(true)
@@ -122,7 +127,7 @@ class GameThread : JobThread(OutputThread()) {
      *
      * @return input or null if timeouted
      */
-    private fun timedInput(text: String, time: Long): String? {
+    fun timedInput(text: String, time: Long): String? {
         println()
         println()
         colored("$WHITE_UNDERLINED$text (You have approx. $time seconds): ")

@@ -10,6 +10,9 @@ It uses simplier score calculations and goes only to 1000 points.
 - Great visuals (ASCII dices etc)
 
 ## Pictures (pre-alpha)
+**Showcase of the current stage of the game is available here:**
+https://streamable.com/wkm27
+
 ![](https://i.imgur.com/f8icNK1.png)
 
 ## Scoring

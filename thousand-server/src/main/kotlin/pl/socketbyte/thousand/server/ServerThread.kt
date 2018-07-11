@@ -1,6 +1,8 @@
 package pl.socketbyte.thousand.server
 
+import kotlinx.coroutines.experimental.async
 import pl.socketbyte.thousand.server.core.Game
+import pl.socketbyte.thousand.server.core.GameStatus
 import pl.socketbyte.thousand.server.netty.NettyServer
 import pl.socketbyte.thousand.shared.*
 import pl.socketbyte.thousand.shared.netty.kryo.KryoSharedRegister
@@ -38,8 +40,6 @@ class ServerThread : JobThread(OutputThread()) {
         println()
         info("Running server at port 25890...")
         server = NettyServer(25890)
-        info("Registering kryo classes...")
-        KryoSharedRegister.registerAll(server.kryo)
         info("Starting the server...")
         server.start()
 
@@ -52,18 +52,30 @@ class ServerThread : JobThread(OutputThread()) {
         val roll = game.roll()
         val round = game.rules.calculateRound(roll)
 
-        while (true) {
-            if (game.getPlayers().isEmpty())
-                continue
-
-            sleep(500)
-
-            val random = ThreadLocalRandom.current()
-                    .nextInt(0, game.getPlayers().size)
-            val randomPlayer = game.getPlayer(random)
-            randomPlayer.println(YELLOW + "You were randomly chosen player by the server!")
-
-            game.broadcastPrintln(RED + "This message was broadcasted to all of the players.")
+        while (game.status == GameStatus.WAITING) {
+            if (game.getPlayersCount() >= 2) {
+                // Yes, I wanted to do it better, but this was just easier xD
+                var time = 15
+                game.broadcastPrintln(BLUE_BRIGHT + "Game is starting in $time seconds...")
+                time -= 5
+                while (time > 0) {
+                    sleep(5000)
+                    game.broadcastPrintln(BLUE_BRIGHT + "Game is starting in $time seconds...")
+                    time -= 5
+                }
+                sleep(1000)
+                game.broadcastPrintln(YELLOW_BRIGHT + "Game is starting in 3...")
+                sleep(1000)
+                game.broadcastPrintln(YELLOW_BRIGHT + "Game is starting in 2...")
+                sleep(1000)
+                game.broadcastPrintln(YELLOW_BOLD_BRIGHT + "Game is starting in 1...")
+                sleep(1000)
+                game.status == GameStatus.PLAYING
+                async { game.start() }
+                return
+            }
+            sleep(5000)
+            game.broadcastPrintln(BLUE_BRIGHT + "Waiting for player(s)...")
         }
     }
 

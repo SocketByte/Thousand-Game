@@ -14,13 +14,13 @@ import io.netty.handler.ssl.SslContext
 import io.netty.handler.ssl.SslContextBuilder
 import io.netty.handler.ssl.util.SelfSignedCertificate
 import io.netty.handler.timeout.WriteTimeoutHandler
-import kotlinx.coroutines.experimental.TimeoutCancellationException
-import kotlinx.coroutines.experimental.async
+import pl.socketbyte.thousand.server.game
 import pl.socketbyte.thousand.shared.netty.FutureResolver
 import pl.socketbyte.thousand.shared.netty.NettyEndpoint
 import pl.socketbyte.thousand.shared.netty.NettyListener
 import pl.socketbyte.thousand.shared.netty.kryo.KryoDecoder
 import pl.socketbyte.thousand.shared.netty.kryo.KryoEncoder
+import pl.socketbyte.thousand.shared.netty.kryo.KryoSharedRegister
 import pl.socketbyte.thousand.shared.packet.Packet
 import pl.socketbyte.thousand.shared.packet.PacketKeepAlive
 import java.util.concurrent.Executors
@@ -29,15 +29,20 @@ import java.util.concurrent.TimeUnit
 open class NettyServer(private val port: Int)
     : NettyEndpoint {
 
-    private val executors = Executors.newScheduledThreadPool(2)
-
+    val executors = Executors.newScheduledThreadPool(2)
     val clients = mutableListOf<Channel>()
 
     private val bannedClients = mutableListOf<Channel>()
     private val listeners = mutableListOf<NettyListener>()
     private var sslContext: SslContext? = null
 
-    override val kryo: Kryo = Kryo()
+    override val kryo: ThreadLocal<Kryo> = object : ThreadLocal<Kryo>() {
+        override fun initialValue(): Kryo {
+            val kryo = Kryo()
+            KryoSharedRegister.registerAll(kryo)
+            return kryo
+        }
+    }
     override val futureResolver: FutureResolver = FutureResolver()
 
     private lateinit var channel: Channel
@@ -51,15 +56,8 @@ open class NettyServer(private val port: Int)
     }
 
     fun removeClient(channel: Channel) {
+        game.removePlayer(channel)
         clients.remove(channel)
-    }
-
-    fun banClient(channel: Channel) {
-        bannedClients.add(channel)
-    }
-
-    fun isBanned(channel: Channel): Boolean {
-        return bannedClients.contains(channel)
     }
 
     override fun applyCertificate() {
@@ -107,8 +105,8 @@ open class NettyServer(private val port: Int)
                             pipeline.addLast(sslContext?.newHandler(ch.alloc()))
 
                         pipeline.addLast("frame", LengthFieldBasedFrameDecoder(65535, 0, 2, 0, 2))
-                        pipeline.addLast("decoder", KryoDecoder(kryo))
-                        pipeline.addLast("encoder", KryoEncoder(kryo, 4 * 1024, 16 * 1024))
+                        pipeline.addLast("decoder", KryoDecoder(kryo.get()))
+                        pipeline.addLast("encoder", KryoEncoder(kryo.get(), 4 * 1024, 16 * 1024))
                         pipeline.addLast("writeTimeoutHandler", WriteTimeoutHandler(3))
                         pipeline.addLast("handler", NettyChannelHandler(this@NettyServer, listeners))
                     }

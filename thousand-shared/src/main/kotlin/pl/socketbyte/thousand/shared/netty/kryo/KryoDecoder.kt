@@ -2,6 +2,7 @@ package pl.socketbyte.thousand.shared.netty.kryo
 
 import com.esotericsoftware.kryo.Kryo
 import com.esotericsoftware.kryo.io.ByteBufferInput
+import com.esotericsoftware.kryo.pool.KryoPool
 import io.netty.buffer.ByteBuf
 import io.netty.channel.ChannelHandlerContext
 import io.netty.handler.codec.ByteToMessageDecoder

@@ -4,9 +4,17 @@ import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.SimpleChannelInboundHandler
 import io.netty.handler.timeout.TimeoutException
 import io.netty.handler.timeout.WriteTimeoutException
+import pl.socketbyte.thousand.server.core.Player
+import pl.socketbyte.thousand.server.game
 import pl.socketbyte.thousand.server.printlnSync
+import pl.socketbyte.thousand.shared.RED
+import pl.socketbyte.thousand.shared.YELLOW_BRIGHT
 import pl.socketbyte.thousand.shared.netty.NettyListener
 import pl.socketbyte.thousand.shared.packet.Packet
+import pl.socketbyte.thousand.shared.packet.PacketPlayerLogin
+import pl.socketbyte.thousand.shared.packet.PacketSendMessage
+import pl.socketbyte.thousand.shared.packet.data.MessageType
+import java.util.concurrent.TimeUnit
 
 class NettyChannelHandler(
         private val server: NettyServer,
@@ -14,18 +22,24 @@ class NettyChannelHandler(
     : SimpleChannelInboundHandler<Any>() {
 
     override fun channelActive(ctx: ChannelHandlerContext) {
-        if (server.isBanned(ctx.channel())) {
-            ctx.disconnect()
-            return
-        }
         if (server.clients.size >= 4) {
-            // server.write(ctx.channel(), PacketDisconnectResult("server is full"))
+            server.write(ctx.channel(), PacketSendMessage(MessageType.PRINT_LINE,
+                    RED + "Server is full"))
             ctx.disconnect()
             return
         }
         server.addClient(ctx.channel())
+        val playerId = server.clients.size - 1
 
-        printlnSync("Client ${ctx.channel().remoteAddress()} joined the game (${server.clients.size}/4)")
+        server.executors.schedule({
+            if (game.getPlayer(playerId) == null) {
+                // player not authorized in time
+                server.write(ctx.channel(), PacketSendMessage(MessageType.PRINT_LINE,
+                        YELLOW_BRIGHT + "You were disconnected from the server because " +
+                                "you did not enter your name in time (20 sec), please try again."))
+                ctx.channel().disconnect()
+            }
+        }, 20, TimeUnit.SECONDS)
     }
 
     override fun channelInactive(ctx: ChannelHandlerContext) {
@@ -43,13 +57,26 @@ class NettyChannelHandler(
     }
 
     override fun channelRead0(ctx: ChannelHandlerContext, msg: Any) {
-        if (server.isBanned(ctx.channel())) {
-            ctx.disconnect()
-            return
-        }
-
         if (msg !is Packet)
             return
+
+        if (msg is PacketPlayerLogin) {
+            val name: String =
+                    if (msg.name == "")
+                        "Player " + (server.clients.size - 1)
+                    else msg.name
+
+            val player = game.addPlayer(Player(
+                    (server.clients.size - 1),
+                    name,
+                    ctx.channel(),
+                    ctx.channel().id().asShortText()))
+
+            printlnSync("Player $name joined the game (${server.clients.size}/4)")
+            game.clearScreen(player)
+            game.broadcastPrintln(YELLOW_BRIGHT + "Player $name joined the game (${server.clients.size}/4)")
+            return
+        }
 
         for (adapter in listeners) {
             adapter.received(ctx.channel(), msg)
